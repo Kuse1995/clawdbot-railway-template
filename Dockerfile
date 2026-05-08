@@ -110,8 +110,15 @@ EXPOSE 8080
 
 ENTRYPOINT ["tini", "--"]
 
+EXPOSE 8080
+
+ENTRYPOINT ["tini", "--"]
+
+# This command ensures the PORT is correctly mapped for the Healthcheck to pass
 CMD ["sh", "-c", "\
 export PORT=${PORT:-8080} && \
+mkdir -p /data/.openclaw && \
+echo '{\"gateway\":{\"controlUi\":{\"allowedOrigins\":[\"*\"]}}}' > /data/.openclaw/config.json && \
 cloudflared tunnel run --token $TUNNEL_TOKEN & \
 node src/server.js \
 "]
