@@ -1,71 +1,62 @@
-// --- Dashboard password protection ---
-// Require the same SETUP_PASSWORD for the entire Control UI dashboard,
-// not just the /setup routes. Healthcheck is excluded so Railway probes work.
+const express = require('express');
+const path = require('path');
+const app = express();
 
+// Basic Middleware
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Variables from your Railway Environment
+const SETUP_PASSWORD = process.env.SETUP_PASSWORD;
+
+// --- 1. THE AUTH BYPASS (Restored and Fixed) ---
 function requireDashboardAuth(req, res, next) {
+  // Allow Railway and OpenClaw health checks
+  if (req.path === "/healthz" || req.path === "/setup/healthz") return next();
 
-  // Allow Railway/OpenClaw health checks
-  if (
-    req.path === "/healthz" ||
-    req.path === "/setup/healthz"
-  ) {
-    return next();
-  }
+  // Allow webhook endpoints to bypass password protection
+  // This allows WhatsApp/Omanut events to reach your AI
+  if (req.path.startsWith("/hooks") || req.path === "/webhook") return next();
 
-  // Allow webhook endpoints WITHOUT dashboard auth
-  // so Omanut/OpenClaw integrations can post events correctly
-  if (
-    req.path.startsWith("/hooks") ||
-    req.path === "/webhook"
-  ) {
-    return next();
-  }
-
-  // If no dashboard password is configured,
-  // leave dashboard publicly accessible
-  if (!SETUP_PASSWORD) {
-    return next();
-  }
+  if (!SETUP_PASSWORD) return next();
 
   const header = req.headers.authorization || "";
   const [scheme, encoded] = header.split(" ");
-
-  // Missing or invalid auth header
   if (scheme !== "Basic" || !encoded) {
     res.set("WWW-Authenticate", 'Basic realm="OpenClaw Dashboard"');
     return res.status(401).send("Auth required");
   }
-
-  // Decode credentials
   const decoded = Buffer.from(encoded, "base64").toString("utf8");
   const idx = decoded.indexOf(":");
   const password = idx >= 0 ? decoded.slice(idx + 1) : "";
-
-  // Wrong password
   if (password !== SETUP_PASSWORD) {
     res.set("WWW-Authenticate", 'Basic realm="OpenClaw Dashboard"');
     return res.status(401).send("Invalid password");
   }
-
-  // Auth success
   return next();
 }
 
-// --------------------------------------------------
-// Railway Healthcheck Endpoint
-// --------------------------------------------------
+// Apply Auth to the dashboard/routes
+app.use(requireDashboardAuth);
 
+// --- 2. YOUR ROUTES ---
+app.get('/', (req, res) => {
+  res.send('Omanut AI Gateway is Operational.');
+});
+
+// The Webhook route for WhatsApp/Omanut
+app.post('/webhook', (req, res) => {
+  console.log('Webhook received:', req.body);
+  res.status(200).send('EVENT_RECEIVED');
+});
+
+// --- 3. THE HEALTHY LISTENER ---
 const PORT = process.env.PORT || 8080;
 
 app.get("/healthz", (req, res) => {
   res.status(200).send("OK");
 });
 
-// --------------------------------------------------
-// Start Server
-// IMPORTANT: Must bind to 0.0.0.0 for Railway
-// --------------------------------------------------
-
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`OpenClaw server running on port ${PORT}`);
+  console.log(`Omanut AI server is live on port ${PORT}`);
 });
