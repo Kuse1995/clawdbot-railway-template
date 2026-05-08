@@ -1,5 +1,11 @@
-const express = require('express');
-const path = require('path');
+import express from 'express';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// Boilerplate to restore __dirname functionality in ES Modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const app = express();
 
 // Basic Middleware
@@ -9,13 +15,12 @@ app.use(express.urlencoded({ extended: true }));
 // Variables from your Railway Environment
 const SETUP_PASSWORD = process.env.SETUP_PASSWORD;
 
-// --- 1. THE AUTH BYPASS (Restored and Fixed) ---
+// --- 1. THE AUTH BYPASS ---
 function requireDashboardAuth(req, res, next) {
   // Allow Railway and OpenClaw health checks
   if (req.path === "/healthz" || req.path === "/setup/healthz") return next();
 
   // Allow webhook endpoints to bypass password protection
-  // This allows WhatsApp/Omanut events to reach your AI
   if (req.path.startsWith("/hooks") || req.path === "/webhook") return next();
 
   if (!SETUP_PASSWORD) return next();
@@ -41,7 +46,7 @@ app.use(requireDashboardAuth);
 
 // --- 2. YOUR ROUTES ---
 app.get('/', (req, res) => {
-  res.send('Omanut AI Gateway is Operational.');
+  res.send('Omanut AI Gateway is Operational in ESM Mode.');
 });
 
 // The Webhook route for WhatsApp/Omanut
@@ -58,5 +63,5 @@ app.get("/healthz", (req, res) => {
 });
 
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`Omanut AI server is live on port ${PORT}`);
+  console.log(`Omanut AI server is live on port ${PORT} (ESM)`);
 });
