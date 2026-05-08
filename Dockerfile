@@ -4,13 +4,16 @@ FROM node:22-bookworm AS openclaw-build
 # Dependencies needed for openclaw build
 RUN apt-get update \
   && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-    git \
     ca-certificates \
-    curl \
+    tini \
     python3 \
-    make \
-    g++ \
+    python3-venv \
+    curl \
   && rm -rf /var/lib/apt/lists/*
+
+RUN curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 \
+  -o /usr/local/bin/cloudflared && \
+  chmod +x /usr/local/bin/cloudflared
 
 # Install Bun (openclaw build uses it)
 RUN curl -fsSL https://bun.sh/install | bash
