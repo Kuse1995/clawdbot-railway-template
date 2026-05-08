@@ -50,3 +50,22 @@ function requireDashboardAuth(req, res, next) {
   // Auth success
   return next();
 }
+
+// --------------------------------------------------
+// Railway Healthcheck Endpoint
+// --------------------------------------------------
+
+const PORT = process.env.PORT || 8080;
+
+app.get("/healthz", (req, res) => {
+  res.status(200).send("OK");
+});
+
+// --------------------------------------------------
+// Start Server
+// IMPORTANT: Must bind to 0.0.0.0 for Railway
+// --------------------------------------------------
+
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`OpenClaw server running on port ${PORT}`);
+});
