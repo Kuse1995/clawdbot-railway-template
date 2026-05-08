@@ -106,9 +106,12 @@ ENTRYPOINT ["tini", "--"]
 # Startup
 # =========================
 
+EXPOSE 8080
+
+ENTRYPOINT ["tini", "--"]
+
 CMD ["sh", "-c", "\
-mkdir -p /data/.openclaw && \
-echo '{\"gateway\":{\"controlUi\":{\"allowedOrigins\":[\"*\"]}}}' > /data/.openclaw/config.json && \
+export PORT=${PORT:-8080} && \
 cloudflared tunnel run --token $TUNNEL_TOKEN & \
 node src/server.js \
 "]
